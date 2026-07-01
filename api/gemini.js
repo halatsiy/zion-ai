@@ -1,11 +1,13 @@
 export default async function handler(req, res) {
+  // Only allow POST requests
   if (req.method !== "POST") {
     return res.status(405).json({
-      error: "Use a POST request with a JSON body."
+      error: "Use a POST request."
     });
   }
 
   try {
+    // Check if the user sent a message
     const userMessage = req.body?.message;
 
     if (!userMessage) {
@@ -14,6 +16,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // Call Gemini API
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
@@ -24,7 +27,11 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: userMessage }],
+              parts: [
+                {
+                  text: userMessage,
+                },
+              ],
             },
           ],
         }),
@@ -33,12 +40,21 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "No response from AI";
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
 
-    res.status(200).json({ reply });
+    const reply =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "No response from Gemini.";
+
+    return res.status(200).json({
+      reply,
+    });
+
   } catch (error) {
-    res.status(500).json({ error: "Server error", details: error.message });
+    return res.status(500).json({
+      error: error.message,
+    });
   }
 }
