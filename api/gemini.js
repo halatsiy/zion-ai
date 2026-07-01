@@ -1,6 +1,18 @@
 export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      error: "Use a POST request with a JSON body."
+    });
+  }
+
   try {
-    const userMessage = req.body.message;
+    const userMessage = req.body?.message;
+
+    if (!userMessage) {
+      return res.status(400).json({
+        error: "Missing 'message' in request body."
+      });
+    }
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
